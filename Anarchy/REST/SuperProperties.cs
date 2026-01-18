@@ -7,98 +7,115 @@ using Newtonsoft.Json;
 
 namespace Discord
 {
-    public class SuperProperties
-    {
-        private static int _versionCache;
-        private static int GetClientVersion()
-        {
-            if (_versionCache == 0)
-            {
-                var client = new HttpClient();
+	public class SuperProperties
+	{
+		private static int _versionCache;
+		private static int GetClientVersion()
+		{
+			if (_versionCache == 0) {
+				var client = new HttpClient();
 
-                string appPage = client.GetStringAsync("https://discord.com/app").Result;
-                const string findThis = "build_number:\"";
+				string appPage = client.GetStringAsync("https://discord.com/app").Result;
+				const string findThis = "build_number:\"";
 
-                var assets = new List<Match>(Regex.Matches(appPage, "/assets/.{20}.js"));
-                assets.Reverse();
-                foreach (var asset in assets)
-                {
-                    var content = client.GetStringAsync("https://discord.com" + asset).Result;
+				var assets = new List<Match>(Regex.Matches(appPage, "/assets/.{20}.js"));
+				assets.Reverse();
+				foreach (var asset in assets) {
+					var content = client.GetStringAsync("https://discord.com" + asset).Result;
 
-                    if (content.Contains(findThis))
-                    {
-                        string buildNumber = content[(content.IndexOf(findThis) + findThis.Length)..].Split('"')[0];
+					if (content.Contains(findThis)) {
+						int startIndex = content.IndexOf(findThis, StringComparison.InvariantCulture);
+						if (startIndex == -1)
+							throw new InvalidOperationException("Target string not found.");
 
-                        _versionCache = int.Parse(buildNumber);
-                        break;
-                    }
-                }
-            }
+						string buildNumber = content
+						    .Substring(startIndex + findThis.Length)
+						    .Split('"')[0];
 
-            return _versionCache;
-        }
+						_versionCache = int.Parse(buildNumber);
+						break;
+					}
+				}
+			}
 
-        [JsonProperty("os")]
-        public string OS { get; set; } = "Windows";
+			return _versionCache;
+		}
 
-        [JsonProperty("browser")]
-        public string Browser { get; set; } = "Chrome";
+		[JsonProperty("os")]
+		public string OS { get; set; } = "Windows";
 
-        [JsonProperty("device")]
-        public string Device { get; set; } = "";
+		[JsonProperty("browser")]
+		public string Browser { get; set; } = "Chrome";
 
-        [JsonProperty("system_locale")]
-        public string SystemLocale { get; set; } = "da-DK";
+		[JsonProperty("device")]
+		public string Device { get; set; } = "";
 
-        [JsonProperty("browser_user_agent")]
-        public string UserAgent { get; set; } = "Discord/31433 CFNetwork/1331.0.7 Darwin/21.4.0";
+		[JsonProperty("system_locale")]
+		public string SystemLocale { get; set; } = "da-DK";
 
-        [JsonProperty("browser_version")]
-        public string BrowserVersion { get; set; } = "91.0.4472.106";
+		[JsonProperty("browser_user_agent")]
+		public string UserAgent { get; set; } = "Discord/31433 CFNetwork/1331.0.7 Darwin/21.4.0";
 
-        [JsonProperty("os_version")]
-        public string OSVersion { get; set; } = "10";
+		[JsonProperty("browser_version")]
+		public string BrowserVersion { get; set; } = "91.0.4472.106";
 
-        [JsonProperty("referrer")]
-        public string Referrer { get; set; } = "";
+		[JsonProperty("os_version")]
+		public string OSVersion { get; set; } = "10";
 
-        [JsonProperty("referring_domain")]
-        public string ReferrerDomain { get; set; } = "";
+		[JsonProperty("referrer")]
+		public string Referrer { get; set; } = "";
 
-        [JsonProperty("referrer_current")]
-        public string ReferrerCurrent { get; set; } = "";
+		[JsonProperty("referring_domain")]
+		public string ReferrerDomain { get; set; } = "";
 
-        [JsonProperty("referring_domain_current")]
-        public string ReferrerDomainCurrent { get; set; } = "";
+		[JsonProperty("referrer_current")]
+		public string ReferrerCurrent { get; set; } = "";
 
-        [JsonProperty("release_channel")]
-        private string _relChannel = "stable";
+		[JsonProperty("referring_domain_current")]
+		public string ReferrerDomainCurrent { get; set; } = "";
 
-        public DiscordReleaseChannel ReleaseChannel
-        {
-            get => (DiscordReleaseChannel) Enum.Parse(typeof(DiscordReleaseChannel), _relChannel, true);
-            set => _relChannel = value.ToString().ToLower();
-        }
+		[JsonProperty("release_channel")]
+		private string _relChannel = "stable";
+		public DiscordReleaseChannel ReleaseChannel {
+			get {
+				return (DiscordReleaseChannel)Enum.Parse(
+					typeof(DiscordReleaseChannel),
+					_relChannel,
+					true
+				);
+			}
+			set {
+				_relChannel = value.ToString().ToLower();
+			}
+		}
 
-        [JsonProperty("client_build_number")]
-        public int ClientVersion { get; set; } = GetClientVersion();
+		[JsonProperty("client_build_number")]
+		public int ClientVersion {
+			get;
+			set;
+		}
 
-        [JsonProperty("client_event_source")]
-        public string EventSource { get; set; }
+		public SuperProperties()
+		{
+			ClientVersion = GetClientVersion();
+		}
 
-        public static SuperProperties FromBase64(string base64)
-        {
-            return JsonConvert.DeserializeObject<SuperProperties>(Encoding.UTF8.GetString(Convert.FromBase64String(base64)));
-        }
+		[JsonProperty("client_event_source")]
+		public string EventSource { get; set; }
 
-        public string ToBase64()
-        {
-            return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(this)));
-        }
+		public static SuperProperties FromBase64(string base64)
+		{
+			return JsonConvert.DeserializeObject<SuperProperties>(Encoding.UTF8.GetString(Convert.FromBase64String(base64)));
+		}
 
-        public override string ToString()
-        {
-            return UserAgent;
-        }
-    }
+		public string ToBase64()
+		{
+			return Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(this)));
+		}
+
+		public override string ToString()
+		{
+			return UserAgent;
+		}
+	}
 }

@@ -8,10 +8,11 @@ namespace Discord.Commands
     {
         public DiscordCommand(Type type, CommandAttribute attr) : base(attr.Name, attr.Description)
         {
-            List<CommandParameter> parameters = new List<CommandParameter>();
+            var parameters = new List<CommandParameter>();
             foreach (var property in type.GetProperties(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
             {
-                if (CommandHandler.TryGetAttribute(property.GetCustomAttributes(), out ParameterAttribute pAttr))
+            	ParameterAttribute pAttr;
+                if (CommandHandler.TryGetAttribute(property.GetCustomAttributes(), out pAttr))
                     parameters.Add(new CommandParameter(pAttr, property));
             }
             Parameters = parameters;

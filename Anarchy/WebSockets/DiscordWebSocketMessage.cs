@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Discord.WebSockets
 {
-    public class DiscordWebSocketMessage<TOpcode> : DiscordWebSocketRequest<JToken, TOpcode> where TOpcode : Enum
+    public class DiscordWebSocketMessage<TOpcode> : DiscordWebSocketRequest<JToken, TOpcode>
     {
         // these members only apply to the Gateway :P
         [JsonProperty("t")]

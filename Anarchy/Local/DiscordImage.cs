@@ -1,41 +1,62 @@
 ﻿using System;
-using Microsoft.Maui.Graphics;
-using Microsoft.Maui.Graphics.Platform;
 using Newtonsoft.Json;
 
 namespace Discord
 {
-    internal class ImageJsonConverter : JsonConverter<DiscordImage>
+    internal class ImageJsonConverter : JsonConverter
     {
-        public override bool CanRead => false;
+        public override bool CanRead
+        {
+            get { return false; }
+        }
 
-        public override DiscordImage ReadJson(JsonReader reader, Type objectType, DiscordImage existingValue, bool hasExistingValue, JsonSerializer serializer)
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(DiscordImage);
+        }
+
+        public override object ReadJson(
+            JsonReader reader,
+            Type objectType,
+            object existingValue,
+            JsonSerializer serializer)
         {
             throw new NotImplementedException();
         }
 
-        public override void WriteJson(JsonWriter writer, DiscordImage image, JsonSerializer serializer)
+        public override void WriteJson(
+            JsonWriter writer,
+            object value,
+            JsonSerializer serializer)
         {
-            writer.WriteValue($"data:{image.ImageFormat.ToMediaType()};base64,{Convert.ToBase64String(image.PlatformImage.Bytes)}");
+            var image = (DiscordImage)value;
+
+            string data = string.Format(
+                "data:{0};base64,{1}",
+                image.ImageFormat.ToMediaType(),
+                Convert.ToBase64String(image.Bytes)
+            );
+
+            writer.WriteValue(data);
         }
     }
-
+    
     [JsonConverter(typeof(ImageJsonConverter))]
     public class DiscordImage
     {
-        public DiscordImage(IImage image, ImageFormat type)
+        public DiscordImage(byte[] bytes, ImageFormat format)
         {
-            PlatformImage = image.ToPlatformImage() as PlatformImage;
-            ImageFormat = type;
+            Bytes = bytes;
+            ImageFormat = format;
         }
 
-        public PlatformImage PlatformImage { get; }
+        public byte[] Bytes { get; private set; }
 
-        public ImageFormat ImageFormat { get; }
+        public ImageFormat ImageFormat { get; private set; }
 
         public static implicit operator DiscordAttachmentFile(DiscordImage image)
         {
-            return new DiscordAttachmentFile(image.PlatformImage.Bytes, image.ImageFormat);
+            return new DiscordAttachmentFile(image.Bytes, image.ImageFormat);
         }
     }
 }

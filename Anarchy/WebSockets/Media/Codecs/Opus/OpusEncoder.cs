@@ -45,7 +45,8 @@ namespace Discord.Media
                     throw new ArgumentOutOfRangeException(nameof(application));
             }
 
-            _ptr = CreateEncoder(SamplingRate, Channels, (int) opusApplication, out var error);
+            OpusError error;
+            _ptr = CreateEncoder(SamplingRate, Channels, (int) opusApplication, out error);
             CheckError(error);
             CheckError(EncoderCtl(_ptr, OpusCtl.SetSignal, (int) opusSignal));
             CheckError(EncoderCtl(_ptr, OpusCtl.SetPacketLossPercent, packetLoss)); //%

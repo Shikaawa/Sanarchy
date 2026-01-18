@@ -27,7 +27,8 @@ namespace Discord.Gateway
             }
             catch (KeyNotFoundException)
             {
-                throw new DiscordHttpException(new DiscordHttpError(DiscordError.UnknownGuild, "Guild was not found in the cache"));
+                throw new DiscordHttpException(
+                    new DiscordHttpError(DiscordError.UnknownGuild, "Guild was not found in the cache"));
             }
         }
 
@@ -35,69 +36,69 @@ namespace Discord.Gateway
         {
             client.GetCachedGuild(guildId);
 
-            try
-            {
-                return client.GuildSettings[guildId];
-            }
-            catch (KeyNotFoundException)
-            {
-                return null;
-            }
+            ClientGuildSettings settings;
+            if (client.GuildSettings.TryGetValue(guildId, out settings))
+                return settings;
+
+            return null;
         }
 
         public static DiscordChannelSettings GetChannelSettings(this DiscordSocketClient client, ulong channelId)
         {
             foreach (var settings in client.PrivateChannelSettings)
-            {
                 if (settings.Id == channelId)
                     return settings;
-            }
 
             foreach (var guildSettings in client.GuildSettings.Values)
-            {
                 foreach (var channel in guildSettings.ChannelOverrides)
-                {
                     if (channel.Id == channelId)
                         return channel;
-                }
-            }
 
             return null;
         }
 
-        public static Task<IReadOnlyList<GuildMember>> GetGuildMembersAsync(this DiscordSocketClient client, ulong guildId, uint limit = 0)
+        public static Task<IReadOnlyList<GuildMember>> GetGuildMembersAsync(
+            this DiscordSocketClient client, ulong guildId, uint limit)
         {
             List<GuildMember> members = new List<GuildMember>();
-            TaskCompletionSource<IReadOnlyList<GuildMember>> task = new TaskCompletionSource<IReadOnlyList<GuildMember>>();
+            TaskCompletionSource<IReadOnlyList<GuildMember>> tcs =
+                new TaskCompletionSource<IReadOnlyList<GuildMember>>();
 
-            void handler(DiscordSocketClient c, GuildMembersEventArgs args)
+            EventHandler<GuildMembersEventArgs> handler = null;
+
+            handler = delegate (DiscordSocketClient c, GuildMembersEventArgs args)
             {
-                if (args.GuildId == guildId)
+                if (args.GuildId != guildId)
+                    return;
+
+                members.AddRange(args.Members);
+
+                if (args.Index + 1 == args.Total)
                 {
-                    members.AddRange(args.Members);
-
-                    if (args.Index + 1 == args.Total)
-                    {
-                        client.OnGuildMembersReceived -= handler;
-
-                        task.SetResult(members);
-                    }
+                    client.OnGuildMembersReceived -= handler;
+                    tcs.SetResult(members);
                 }
             };
 
             client.OnGuildMembersReceived += handler;
+            client.Send(GatewayOpcode.RequestGuildMembers,
+                new GuildMemberQuery { GuildId = guildId, Limit = limit });
 
-            client.Send(GatewayOpcode.RequestGuildMembers, new GuildMemberQuery() { GuildId = guildId, Limit = limit });
-
-            return task.Task;
+            return tcs.Task;
         }
 
-        public static IReadOnlyList<GuildMember> GetGuildMembers(this DiscordSocketClient client, ulong guildId, uint limit = 0)
+        public static IReadOnlyList<GuildMember> GetGuildMembers(
+            this DiscordSocketClient client, ulong guildId, uint limit)
         {
-            return client.GetGuildMembersAsync(guildId, limit).GetAwaiter().GetResult();
+            return client.GetGuildMembersAsync(guildId, limit)
+                         .GetAwaiter()
+                         .GetResult();
         }
 
-        private static void SetGuildSubscriptions(this DiscordSocketClient client, ulong guildId, GuildSubscriptionProperties properties)
+        private static void SetGuildSubscriptions(
+            this DiscordSocketClient client,
+            ulong guildId,
+            GuildSubscriptionProperties properties)
         {
             properties.GuildId = guildId;
             client.Send(GatewayOpcode.GuildSubscriptions, properties);
@@ -107,13 +108,13 @@ namespace Discord.Gateway
         {
             int[][] results = new int[more ? 3 : 1][];
 
-            results[0] = new int[] { 0, 99 };
+            results[0] = new[] { 0, 99 };
 
             if (more)
             {
                 for (int i = 1; i <= 2; i++)
                 {
-                    results[i] = new int[] { from, from + 99 };
+                    results[i] = new[] { from, from + 99 };
                     from += 100;
                 }
             }
@@ -121,93 +122,98 @@ namespace Discord.Gateway
             return results;
         }
 
-        public static void SubscribeToGuildEvents(this DiscordSocketClient client, ulong guildId) => SetGuildSubscriptions(client, guildId, new GuildSubscriptionProperties() { Typing = true, Activities = true, Threads = true });
-
-        public static Task<IReadOnlyList<GuildMember>> GetGuildChannelMembersAsync(this DiscordSocketClient client, ulong guildId, ulong channelId, uint limit = 0)
+        public static void SubscribeToGuildEvents(
+            this DiscordSocketClient client, ulong guildId)
         {
-            var completionSource = new TaskCompletionSource<IReadOnlyList<GuildMember>>();
+            GuildSubscriptionProperties props = new GuildSubscriptionProperties();
+            props.Typing = true;
+            props.Activities = true;
+            props.Threads = true;
+
+            SetGuildSubscriptions(client, guildId, props);
+        }
+
+        public static Task<IReadOnlyList<GuildMember>> GetGuildChannelMembersAsync(
+            this DiscordSocketClient client,
+            ulong guildId,
+            ulong channelId,
+            uint limit)
+        {
+            TaskCompletionSource<IReadOnlyList<GuildMember>> tcs =
+                new TaskCompletionSource<IReadOnlyList<GuildMember>>();
+
             List<GuildMember> members = new List<GuildMember>();
 
-            // maybe could've made it start from the last chunk it received,
-            // but due to them possibly being logged out for an extended period of time, starting over is better
-            void loginHandler(DiscordSocketClient c, LoginEventArgs e)
+            EventHandler<LoginEventArgs> loginHandler = null;
+            EventHandler<DiscordMemberListUpdate> handler = null;
+
+            loginHandler = delegate
             {
                 members.Clear();
-                client.SetGuildSubscriptions(guildId, new GuildSubscriptionProperties()
-                {
-                    Activities = true,
-                    Typing = true,
-                    Threads = true,
-                    Channels = { { channelId, CreateChunks(0, false) } }
-                });
-            }
 
-            void handler(DiscordSocketClient s, DiscordMemberListUpdate e)
+                GuildSubscriptionProperties props = new GuildSubscriptionProperties();
+                props.Activities = true;
+                props.Typing = true;
+                props.Threads = true;
+                props.Channels.Add(channelId, CreateChunks(0, false));
+
+                client.SetGuildSubscriptions(guildId, props);
+            };
+
+            handler = delegate (DiscordSocketClient s, DiscordMemberListUpdate e)
             {
-                if (e.Guild.Id == guildId)
+                if (e.Guild.Id != guildId)
+                    return;
+
+                try
                 {
-                    int membersAccordingToRoles = 0;
-
-                    foreach (var group in e.Groups)
-                        membersAccordingToRoles += group.Count;
-
-                    try
+                    foreach (var op in e.Operations)
                     {
-                        var syncOps = e.Operations.Where(o => o.Type == "SYNC").ToList();
+                        if (op.Type != "SYNC")
+                            continue;
 
-                        for (int i = syncOps.Count - 1; i >= 0; i--)
+                        foreach (var item in op.Items)
+                            if (item.Member != null)
+                                members.Add(item.Member);
+
+                        if (op.Items.Count < 100 ||
+                            (limit > 0 && members.Count >= limit))
                         {
-                            var operation = syncOps[i];
+                            client.OnMemberListUpdate -= handler;
+                            client.OnLoggedIn -= loginHandler;
 
-                            if (operation.Type == "SYNC")
-                            {
-                                members.AddRange(operation.Items.Select(item => item.Member).Where(m => m != null));
+                            tcs.SetResult(
+                                limit > 0
+                                    ? members.Take((int)limit).ToList()
+                                    : members);
 
-                                if (operation.Items.Count < 100 || (limit > 0 && members.Count >= limit))
-                                {
-                                    client.OnMemberListUpdate -= handler;
-                                    client.OnLoggedIn -= loginHandler;
-                                    completionSource.SetResult(limit > 0 ? members.Take((int) limit).ToList() : members);
-                                    break;
-                                }
-                                else if (i == 0)
-                                {
-                                    if (members.Count == 100)
-                                        client.SetGuildSubscriptions(guildId, new GuildSubscriptionProperties() { Channels = { { channelId, CreateChunks(0, false) } } });
-
-                                    client.SetGuildSubscriptions(guildId, new GuildSubscriptionProperties() { Channels = { { channelId, CreateChunks(operation.Range[1] + 1, true) } } });
-                                }
-                            }
+                            return;
                         }
                     }
-                    catch (Exception ex)
-                    {
-                        completionSource.SetException(ex);
-                    }
                 }
-            }
+                catch (Exception ex)
+                {
+                    tcs.SetException(ex);
+                }
+            };
 
             client.OnMemberListUpdate += handler;
             client.OnLoggedIn += loginHandler;
 
-            try
-            {
-                client.SetGuildSubscriptions(guildId, new GuildSubscriptionProperties()
-                {
-                    Activities = true,
-                    Typing = true,
-                    Threads = true,
-                    Channels = { { channelId, CreateChunks(0, false) } }
-                });
-            }
-            catch (Exception ex)
-            {
-                completionSource.SetException(ex);
-            }
+            loginHandler(client, null);
 
-            return completionSource.Task;
+            return tcs.Task;
         }
 
-        public static IReadOnlyList<GuildMember> GetGuildChannelMembers(this DiscordSocketClient client, ulong guildId, ulong channelId, uint limit = 0) => client.GetGuildChannelMembersAsync(guildId, channelId, limit).GetAwaiter().GetResult();
+        public static IReadOnlyList<GuildMember> GetGuildChannelMembers(
+            this DiscordSocketClient client,
+            ulong guildId,
+            ulong channelId,
+            uint limit)
+        {
+            return client.GetGuildChannelMembersAsync(guildId, channelId, limit)
+                         .GetAwaiter()
+                         .GetResult();
+        }
     }
 }

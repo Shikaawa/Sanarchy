@@ -15,10 +15,8 @@ namespace Anarchy
         {
             get
             {
-                if (TryGetValue(key, out TValue value))
-                    return value;
-                else
-                    return this[key] = _valueCreate(key);
+            	TValue value;
+				return TryGetValue(key, out value) ? value : this[key] = _valueCreate(key);
             }
             set { base[key] = value; }
         }
@@ -29,10 +27,8 @@ namespace Anarchy
             {
                 if (doNotSave)
                 {
-                    if (TryGetValue(key, out TValue value))
-                        return value;
-                    else
-                        return _valueCreate(key);
+                	TValue value;
+					return TryGetValue(key, out value) ? value : _valueCreate(key);
                 }
                 else
                     return this[key];

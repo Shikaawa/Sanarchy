@@ -143,7 +143,7 @@ namespace Discord.Gateway
         {
             RequestLock = new object();
 
-            config ??= new DiscordSocketConfig();
+			config = config ?? new DiscordSocketConfig();
             Config = new LockedSocketConfig(config);
             base.Config = Config;
 
@@ -608,7 +608,8 @@ namespace Discord.Gateway
 
                                 if (Config.Cache)
                                 {
-                                    if (Presences.TryGetValue(presence.UserId, out DiscordPresence existingPresence))
+                                	DiscordPresence existingPresence;
+                                    if (Presences.TryGetValue(presence.UserId, out existingPresence))
                                     {
                                         existingPresence.Update(presence);
                                         presence = existingPresence;

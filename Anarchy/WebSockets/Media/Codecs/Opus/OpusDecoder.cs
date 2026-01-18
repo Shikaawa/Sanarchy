@@ -16,7 +16,8 @@ namespace Discord.Media
 
         public OpusDecoder()
         {
-            _ptr = CreateDecoder(SamplingRate, Channels, out var error);
+        	OpusError error;
+            _ptr = CreateDecoder(SamplingRate, Channels, out error);
             CheckError(error);
         }
 

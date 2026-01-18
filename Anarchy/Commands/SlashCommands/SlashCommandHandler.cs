@@ -33,14 +33,16 @@ namespace Discord.Commands
             {
                 if (typeof(SlashCommand).IsAssignableFrom(type))
                 {
-                    if (TryGetAttribute<SlashCommandAttribute>(type.GetCustomAttributes(), out var attr))
+                	SlashCommandAttribute attr;
+                    if (TryGetAttribute<SlashCommandAttribute>(type.GetCustomAttributes(), out attr))
                     {
-                        List<ApplicationCommandOption> parameters = new List<ApplicationCommandOption>();
-                        Dictionary<string, PropertyInfo> properties = new Dictionary<string, PropertyInfo>();
+                        var parameters = new List<ApplicationCommandOption>();
+                        var properties = new Dictionary<string, PropertyInfo>();
 
                         foreach (var property in type.GetProperties())
                         {
-                            if (TryGetAttribute<SlashParameterAttribute>(property.GetCustomAttributes(), out var paramAttr))
+                        	SlashParameterAttribute paramAttr;
+                            if (TryGetAttribute<SlashParameterAttribute>(property.GetCustomAttributes(), out paramAttr))
                             {
                                 List<CommandOptionChoice> choices = null;
 
@@ -76,7 +78,8 @@ namespace Discord.Commands
                             }
                         }
 
-                        string category = TryGetAttribute<SlashCommandCategoryAttribute>(type.GetCustomAttributes(), out var catAttr) ? catAttr.Category : null;
+                        SlashCommandCategoryAttribute catAttr;
+                        string category = TryGetAttribute<SlashCommandCategoryAttribute>(type.GetCustomAttributes(), out catAttr) ? catAttr.Category : null;
 
                         var handler = _handlerDict[category == null ? attr.Name : $"{category}.{attr.Name}"] = new LocalCommandInfo()
                         {
@@ -137,7 +140,17 @@ namespace Discord.Commands
             }
 
             if (guildId.HasValue)
-                _client.HttpClient.PutAsync($"/applications/{appId}/guilds/{guildId.Value}/commands", _commands).GetAwaiter().GetResult();
+                _client.HttpClient
+			    .PutAsync(
+			        string.Format(
+			            "/applications/{0}/guilds/{1}/commands",
+			            appId,
+			            guildId.Value
+			        ),
+			        _commands
+			    )
+			    .GetAwaiter()
+			    .GetResult();
             else
                 _client.SetGlobalApplicationCommands(appId, _commands);
 
@@ -145,33 +158,55 @@ namespace Discord.Commands
         }
 
         private object ResolveObject(ResolvedInteractionData data, ulong id)
-        {
-            if (data.Roles != null && data.Roles.TryGetValue(id, out var role)) return role;
-            else if (data.Members != null && data.Members.TryGetValue(id, out var member)) return member;
-            else if (data.Users != null && data.Users.TryGetValue(id, out var user)) return user;
-            else throw new Exception(); // what the fuck
-        }
+		{
+		    DiscordRole role;
+		    if (data.Roles != null && data.Roles.TryGetValue(id, out role))
+		        return role;
+		
+		    GuildMember member;
+		    if (data.Members != null && data.Members.TryGetValue(id, out member))
+		        return member;
+		
+		    DiscordUser user;
+		    if (data.Users != null && data.Users.TryGetValue(id, out user))
+		        return user;
+		
+		    throw new Exception();
+		}
 
         private void Client_OnInteraction(DiscordSocketClient client, DiscordInteractionEventArgs args)
-        {
-            if (args.Interaction.Type == DiscordInteractionType.ApplicationCommand && args.Interaction.ApplicationId == ApplicationId)
-            {
-                foreach (var cmd in _commands)
-                {
-                    if (cmd.Name == args.Interaction.Data.CommandName)
-                    {
-                        if (cmd.Options.Count > 0 && cmd.Options[0].Type == CommandOptionType.SubCommand)
-                        {
-                            var subCommand = args.Interaction.Data.CommandArguments[0];
-                            Handle($"{cmd.Name}.{subCommand.Name}", args.Interaction, subCommand.Options?.ToList());
-                        }
-                        else Handle(cmd.Name, args.Interaction, args.Interaction.Data.CommandArguments.ToList());
+		{
+			if (args.Interaction.Type == DiscordInteractionType.ApplicationCommand &&
+			       args.Interaction.ApplicationId == ApplicationId) {
+				foreach (var cmd in _commands) {
+					if (cmd.Name == args.Interaction.Data.CommandName) {
+						if (cmd.Options.Count > 0 &&
+						                cmd.Options[0].Type == CommandOptionType.SubCommand) {
+							var subCommand = args.Interaction.Data.CommandArguments[0];
+		
+							List<SlashCommandArgument> options = null;
+							if (subCommand.Options != null)
+								options = subCommand.Options.ToList();
+		
+							Handle(
+								cmd.Name + "." + subCommand.Name,
+								args.Interaction,
+								options
+							);
+						} else {
+							Handle(
+								cmd.Name,
+								args.Interaction,
+								args.Interaction.Data.CommandArguments.ToList()
+							);
+						}
+		
+						break;
+					}
+				}
+			}
+		}
 
-                        break;
-                    }
-                }
-            }
-        }
 
         private void Handle(string cmdName, DiscordInteraction interaction, List<SlashCommandArgument> arguments)
         {
@@ -237,7 +272,7 @@ namespace Discord.Commands
         {
             foreach (var attribute in attributes)
             {
-                if (attribute.GetType() == typeof(TAttr))
+                if (attribute is TAttr)
                 {
                     attr = (TAttr) attribute;
                     return true;

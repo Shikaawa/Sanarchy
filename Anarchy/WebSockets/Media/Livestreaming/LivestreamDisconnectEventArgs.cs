@@ -15,7 +15,8 @@ namespace Discord.Media
 
             RawReason = goLive.RawReason;
 
-            if (Enum.TryParse(RawReason.Replace("_", ""), true, out DiscordLivestreamError err)) Reason = err;
+            DiscordLivestreamError err;
+            if (Enum.TryParse(RawReason.Replace("_", ""), true, out err)) Reason = err;
             else Reason = DiscordLivestreamError.Unknown;
         }
     }

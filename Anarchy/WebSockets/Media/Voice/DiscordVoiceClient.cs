@@ -27,9 +27,9 @@ namespace Discord.Media
         public DiscordLivestreamClient Livestream { get; private set; }
 
         private OpusDecoder _decoder;
-        private readonly Anarchy.ConcurrentDictionary<ulong, IncomingVoiceStream> _receivers = new();
-        private readonly Anarchy.ConcurrentDictionary<uint, ulong> _ssrcToUserDictionary = new();
-        private static readonly byte[] _silenceFrame = new byte[] { 0xF8, 0xFF, 0xFE };
+        private readonly Anarchy.ConcurrentDictionary<ulong, IncomingVoiceStream> _receivers = new Anarchy.ConcurrentDictionary<ulong, IncomingVoiceStream>();
+        private readonly Anarchy.ConcurrentDictionary<uint, ulong> _ssrcToUserDictionary = new Anarchy.ConcurrentDictionary<uint, ulong>();
+        private static readonly byte[] _silenceFrame = { 0xF8, 0xFF, 0xFE };
 
         public DiscordVoiceClient(DiscordSocketClient client, ulong? guildId)
         {
@@ -88,7 +88,8 @@ namespace Discord.Media
                 case DiscordMediaOpcode.UserDisconnect:
                     ulong userId = message.Data.ToObject<JObject>().Value<ulong>("user_id");
 
-                    if (_ssrcToUserDictionary.TryGetKey(userId, out uint ssrc))
+                    uint ssrc;
+                    if (_ssrcToUserDictionary.TryGetKey(userId, out ssrc))
                         _ssrcToUserDictionary.Remove(ssrc);
                     break;
             }
@@ -96,9 +97,11 @@ namespace Discord.Media
 
         private void Connection_OnUdpPacket(DiscordMediaConnection connection, MediaPacketEventArgs args)
         {
-            if (_decoder != null && args.Header.Type == DiscordMediaConnection.SupportedCodecs["opus"].PayloadType && _ssrcToUserDictionary.TryGetValue(args.Header.SSRC, out ulong userId))
+        	ulong userId;
+            if (_decoder != null && args.Header.Type == DiscordMediaConnection.SupportedCodecs["opus"].PayloadType && _ssrcToUserDictionary.TryGetValue(args.Header.SSRC, out userId))
             {
-                if (!_receivers.TryGetValue(userId, out IncomingVoiceStream receiver))
+            	IncomingVoiceStream receiver;
+                if (!_receivers.TryGetValue(userId, out receiver))
                 {
                     receiver = _receivers[userId] = new IncomingVoiceStream(Connection, userId);
                     _client.TriggerVCSpeaking(this, receiver);
@@ -118,7 +121,7 @@ namespace Discord.Media
                 {
                     try
                     {
-                        byte[] decoded = new byte[OpusConverter.FrameBytes];
+                        var decoded = new byte[OpusConverter.FrameBytes];
                         int length = _decoder.DecodeFrame(args.Payload, 0, args.Payload.Length, decoded, 0, false);
 
                         receiver.Enqueue(new DiscordVoicePacket(decoded));

@@ -46,35 +46,51 @@ namespace Discord.Media
         }
 
         public Task<DiscordVoicePacket> ReadAsync()
-        {
-            if (_packets.TryDequeue(out DiscordVoicePacket packet))
-                return Task.FromResult(packet);
-            else if (Session.State == MediaConnectionState.Ready && !Closed)
-            {
-                TaskCompletionSource<DiscordVoicePacket> task = new TaskCompletionSource<DiscordVoicePacket>();
-
-                async void handler(object sender, EventArgs e)
-                {
-                    _newPacket -= handler;
-                    _onClose -= closeHandler;
-                    task.SetResult(await ReadAsync());
-                }
-
-                void closeHandler(object sender, EventArgs e)
-                {
-                    _newPacket -= handler;
-                    _onClose -= closeHandler;
-                    task.SetException(new InvalidOperationException("The parent session or this receiver has been closed."));
-                }
-
-                _newPacket += handler;
-                _onClose += closeHandler;
-
-                return task.Task;
-            }
-            else
-                throw new InvalidOperationException("The parent session or this receiver has been closed.");
-        }
+		{
+		    DiscordVoicePacket packet;
+		    if (_packets.TryDequeue(out packet))
+		        return Task.FromResult(packet);
+		
+		    if (Session.State != MediaConnectionState.Ready || Closed)
+		        throw new InvalidOperationException("The parent session or this receiver has been closed.");
+		
+		    var tcs = new TaskCompletionSource<DiscordVoicePacket>();
+		
+		    EventHandler packetHandler = null;
+		    EventHandler closeHandler = null;
+		
+		    packetHandler = delegate
+		    {
+		        _newPacket -= packetHandler;
+		        _onClose -= closeHandler;
+		
+		        // Chain the async call properly
+		        ReadAsync().ContinueWith(t =>
+		        {
+		            if (t.IsFaulted)
+		                tcs.SetException(t.Exception.InnerException);
+		            else if (t.IsCanceled)
+		                tcs.SetCanceled();
+		            else
+		                tcs.SetResult(t.Result);
+		        }, TaskContinuationOptions.ExecuteSynchronously);
+		    };
+		
+		    closeHandler = delegate
+		    {
+		        _newPacket -= packetHandler;
+		        _onClose -= closeHandler;
+		
+		        tcs.SetException(
+		            new InvalidOperationException("The parent session or this receiver has been closed.")
+		        );
+		    };
+		
+		    _newPacket += packetHandler;
+		    _onClose += closeHandler;
+		
+		    return tcs.Task;
+		}
 
         public DiscordVoicePacket Read()
         {

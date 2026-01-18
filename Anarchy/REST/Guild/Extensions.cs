@@ -2,8 +2,6 @@
 using System.IO;
 using System.Net.Http;
 using System.Threading.Tasks;
-using Microsoft.Maui.Graphics;
-using Microsoft.Maui.Graphics.Platform;
 using Newtonsoft.Json.Linq;
 
 namespace Discord
@@ -139,7 +137,7 @@ namespace Discord
 
         public static async Task<IReadOnlyList<DiscordChannelSettings>> SetPrivateChannelSettingsAsync(this DiscordClient client, Dictionary<ulong, ChannelSettingsProperties> channels)
         {
-            JObject container = new JObject
+            var container = new JObject
             {
                 ["channel_overrides"] = JObject.FromObject(channels)
             };
@@ -226,21 +224,42 @@ namespace Discord
             client.AcknowledgeGuildMessagesAsync(guildId).GetAwaiter().GetResult();
         }
 
-        public static async Task<IImage> GetGoLivePreviewAsync(this DiscordClient client, ulong guildId, ulong channelId, ulong userId)
+        public static async Task<DiscordImage> GetGoLivePreviewAsync(
+            this DiscordClient client,
+            ulong guildId,
+            ulong channelId,
+            ulong userId)
         {
-            return PlatformImage.FromStream(
-                new MemoryStream(
-                    await new HttpClient().GetByteArrayAsync(
-                        (await client.HttpClient.GetAsync($"https://discordapp.com/api/v6/streams/guild:{guildId}:{channelId}:{userId}/preview?version=1589053944368"))
-                            .Deserialize<JObject>().Value<string>("url")
-                    )
-                )
+            string apiUrl = string.Format(
+                "https://discordapp.com/api/v6/streams/guild:{0}:{1}:{2}/preview?version=1589053944368",
+                guildId,
+                channelId,
+                userId
             );
+
+            DiscordHttpResponse response = await client.HttpClient
+                .GetAsync(apiUrl)
+                .ConfigureAwait(false);
+
+            JObject json = response.Deserialize<JObject>();
+            string imageUrl = json.Value<string>("url");
+
+            byte[] bytes = await new HttpClient()
+                .GetByteArrayAsync(imageUrl)
+                .ConfigureAwait(false);
+
+            return new DiscordImage(bytes, ImageFormat.Png);
         }
 
-        public static IImage GetGoLivePreview(this DiscordClient client, ulong guildId, ulong channelId, ulong userId)
+        public static DiscordImage GetGoLivePreview(
+            this DiscordClient client,
+            ulong guildId,
+            ulong channelId,
+            ulong userId)
         {
-            return client.GetGoLivePreviewAsync(guildId, channelId, userId).GetAwaiter().GetResult();
+            return client.GetGoLivePreviewAsync(guildId, channelId, userId)
+                         .GetAwaiter()
+                         .GetResult();
         }
     }
 }

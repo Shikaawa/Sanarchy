@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace Discord.WebSockets
 {
-    public class DiscordWebSocketRequest<TData, TOpcode> where TOpcode : Enum
+    public class DiscordWebSocketRequest<TData, TOpcode>
     {
         public DiscordWebSocketRequest()
         { }

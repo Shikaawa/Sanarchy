@@ -1,35 +1,56 @@
 ﻿using System;
-using Microsoft.Maui.Graphics;
 
 namespace Discord
 {
+    public enum ImageFormat
+    {
+        Jpeg,
+        Png,
+        Gif
+    }
+    
     public static class DiscordImageMediaType
     {
-        public static string ToMediaType(this ImageFormat _this)
+        public static string ToMediaType(this ImageFormat format)
         {
-            return _this switch
+            switch (format)
             {
-                ImageFormat.Jpeg => MediaTypeNames.Image.Jpeg,
-                ImageFormat.Png => "image/png",
-                ImageFormat.Gif => MediaTypeNames.Image.Gif,
-                _ => throw new NotSupportedException("ImageFormat not supported.")
-            };
+                case ImageFormat.Jpeg:
+                    return MediaTypeNames.Image.Jpeg;
+
+                case ImageFormat.Png:
+                    return "image/png";
+
+                case ImageFormat.Gif:
+                    return MediaTypeNames.Image.Gif;
+
+                default:
+                    throw new NotSupportedException("ImageFormat not supported.");
+            }
         }
 
         public static ImageFormat ToImageFormat(string mediaType)
         {
-            return Enum.Parse<ImageFormat>(mediaType.Replace("image/", string.Empty), true);
+            if (string.IsNullOrEmpty(mediaType))
+                throw new ArgumentNullException("mediaType");
+
+            string value = mediaType.Replace("image/", string.Empty);
+
+            return (ImageFormat)Enum.Parse(
+                typeof(ImageFormat),
+                value,
+                true
+            );
         }
 
         public static bool IsSupportedImageFormat(string mediaType)
         {
-            string[] supportedImageTypes = { MediaTypeNames.Image.Png, MediaTypeNames.Image.Jpeg, MediaTypeNames.Image.Gif };
+            if (string.IsNullOrEmpty(mediaType))
+                return false;
 
-            foreach (var sit in supportedImageTypes)
-                if (mediaType == sit)
-                    return true;
-
-            return false;
+            return mediaType == MediaTypeNames.Image.Png
+                || mediaType == MediaTypeNames.Image.Jpeg
+                || mediaType == MediaTypeNames.Image.Gif;
         }
     }
 }

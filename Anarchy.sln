@@ -1,9 +1,26 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 17
-VisualStudioVersion = 17.0.32112.339
+# Visual Studio 2012
+# SharpDevelop 5.2
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{DF7071F8-A2B3-419A-951F-94946CFF12FC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AntiRaid", "Examples\AntiRaid\AntiRaid.csproj", "{CFB81EB6-2200-44B6-8A5F-156E1E919599}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GuildDuplicator", "Examples\GuildDuplicator\GuildDuplicator.csproj", "{B121C9B3-6DFE-41E2-AE1E-0FC0395E5C08}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessageListener", "Examples\MessageListener\MessageListener.csproj", "{BBFED1E0-EB5B-4897-B4C8-5E10688676C5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MusicBot", "Examples\MusicBot\MusicBot.csproj", "{31A57FF7-EB0F-483C-A1E4-21B3AAAB24CD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NicknameAnimation", "Examples\NicknameAnimation\NicknameAnimation.csproj", "{FED30462-B74F-4B28-83A4-841F19165045}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NitroSniper", "Examples\NitroSniper\NitroSniper.csproj", "{738BFD53-BB0D-45F7-A904-4FFD980C5A87}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TicTacToe", "Examples\TicTacToe\TicTacToe.csproj", "{A34F8993-D2B3-4F92-9CB3-DA7AACEA6186}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "VCSpammer", "Examples\VCSpammer\VCSpammer.csproj", "{7EBF4ED8-CC72-41CB-ACE6-BFE6E5BB3FA8}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{48CAFB24-2F02-4E07-9E8E-CE64AA5A3C49}"
 	ProjectSection(SolutionItems) = preProject
@@ -12,27 +29,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Changelog.md = Changelog.md
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Anarchy", "Anarchy\Anarchy.csproj", "{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anarchy", "Anarchy\Anarchy.csproj", "{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Anarchy.Tests", "Anarchy.Tests\Anarchy.Tests.csproj", "{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anarchy.Tests", "Anarchy.Tests\Anarchy.Tests.csproj", "{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Anarchy.Puppeteer", "Anarchy.Puppeteer\Anarchy.Puppeteer.csproj", "{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AntiRaid", "Examples\AntiRaid\AntiRaid.csproj", "{CFB81EB6-2200-44B6-8A5F-156E1E919599}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GuildDuplicator", "Examples\GuildDuplicator\GuildDuplicator.csproj", "{B121C9B3-6DFE-41E2-AE1E-0FC0395E5C08}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MessageListener", "Examples\MessageListener\MessageListener.csproj", "{BBFED1E0-EB5B-4897-B4C8-5E10688676C5}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MusicBot", "Examples\MusicBot\MusicBot.csproj", "{31A57FF7-EB0F-483C-A1E4-21B3AAAB24CD}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NicknameAnimation", "Examples\NicknameAnimation\NicknameAnimation.csproj", "{FED30462-B74F-4B28-83A4-841F19165045}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NitroSniper", "Examples\NitroSniper\NitroSniper.csproj", "{738BFD53-BB0D-45F7-A904-4FFD980C5A87}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TicTacToe", "Examples\TicTacToe\TicTacToe.csproj", "{A34F8993-D2B3-4F92-9CB3-DA7AACEA6186}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "VCSpammer", "Examples\VCSpammer\VCSpammer.csproj", "{7EBF4ED8-CC72-41CB-ACE6-BFE6E5BB3FA8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Anarchy.Puppeteer", "Anarchy.Puppeteer\Anarchy.Puppeteer.csproj", "{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -40,18 +41,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}.Release|Any CPU.Build.0 = Release|Any CPU
 		{CFB81EB6-2200-44B6-8A5F-156E1E919599}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CFB81EB6-2200-44B6-8A5F-156E1E919599}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CFB81EB6-2200-44B6-8A5F-156E1E919599}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -84,9 +73,24 @@ Global
 		{7EBF4ED8-CC72-41CB-ACE6-BFE6E5BB3FA8}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7EBF4ED8-CC72-41CB-ACE6-BFE6E5BB3FA8}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7EBF4ED8-CC72-41CB-ACE6-BFE6E5BB3FA8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F6F1AAC-E4DC-4FE7-8166-5B7AEC6FEB4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CDAE252-2BD9-4298-B9B5-26D6106C8FAA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4B8F8D78-65C9-4CD2-97E2-880B9BA0B804}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A4CAD5AB-8223-4E10-8E41-A16FFED6C015}
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{CFB81EB6-2200-44B6-8A5F-156E1E919599} = {DF7071F8-A2B3-419A-951F-94946CFF12FC}
@@ -97,8 +101,5 @@ Global
 		{738BFD53-BB0D-45F7-A904-4FFD980C5A87} = {DF7071F8-A2B3-419A-951F-94946CFF12FC}
 		{A34F8993-D2B3-4F92-9CB3-DA7AACEA6186} = {DF7071F8-A2B3-419A-951F-94946CFF12FC}
 		{7EBF4ED8-CC72-41CB-ACE6-BFE6E5BB3FA8} = {DF7071F8-A2B3-419A-951F-94946CFF12FC}
-	EndGlobalSection
-	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {A4CAD5AB-8223-4E10-8E41-A16FFED6C015}
 	EndGlobalSection
 EndGlobal

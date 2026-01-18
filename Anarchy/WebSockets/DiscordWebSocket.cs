@@ -11,7 +11,7 @@ using Newtonsoft.Json;
 
 namespace Discord.WebSockets
 {
-    public class DiscordWebSocket<TOpcode> : IWebSocketClient<TOpcode> where TOpcode : Enum
+    public class DiscordWebSocket<TOpcode> : IWebSocketClient<TOpcode>
     {
         private const int OutgoingChunkSize = 8192; // 8 KiB
         private const int IncomingChunkSize = 32768; // 32 KiB
@@ -70,46 +70,67 @@ namespace Discord.WebSockets
 
         /// <inheritdoc />
         public async Task ConnectAsync()
-        {
-            // Disconnect first
-            try { await DisconnectAsync().ConfigureAwait(false); } catch { }
-
-            // Disallow sending messages
-            await _senderLock.WaitAsync().ConfigureAwait(false);
-
-            try
-            {
-                // This can be null at this point
-                _receiverTokenSource?.Dispose();
-                _socketTokenSource?.Dispose();
-
-                _ws?.Dispose();
-                _ws = new ClientWebSocket();
-                _ws.Options.Proxy = Proxy;
-                _ws.Options.KeepAliveInterval = TimeSpan.Zero;
-                if (_defaultHeaders != null)
-                    foreach (var (k, v) in _defaultHeaders)
-                        _ws.Options.SetRequestHeader(k, v);
-
-                _receiverTokenSource = new CancellationTokenSource();
-                _receiverToken = _receiverTokenSource.Token;
-
-                _socketTokenSource = new CancellationTokenSource();
-                _socketToken = _socketTokenSource.Token;
-
-                _isDisposed = false;
-                await _ws.ConnectAsync(_uri, _socketToken).ConfigureAwait(false);
-                _receiverTask = Task.Run(ReceiverLoopAsync, CancellationToken.None);
-                _ = _receiverTask.ContinueWith(
-                    task => { OnClosed.Invoke(this, task.Result); },
-                    TaskContinuationOptions.OnlyOnRanToCompletion
-                );
-            }
-            finally
-            {
-                _senderLock.Release();
-            }
-        }
+		{
+		    // Disconnect first
+		    try
+		    {
+		        await DisconnectAsync().ConfigureAwait(false);
+		    }
+		    catch
+		    {
+		    }
+		
+		    // Disallow sending messages
+		    await _senderLock.WaitAsync().ConfigureAwait(false);
+		
+		    try
+		    {
+		        if (_receiverTokenSource != null)
+		            _receiverTokenSource.Dispose();
+		
+		        if (_socketTokenSource != null)
+		            _socketTokenSource.Dispose();
+		
+		        if (_ws != null)
+		            _ws.Dispose();
+		
+		        _ws = new ClientWebSocket();
+		        _ws.Options.Proxy = Proxy;
+		        _ws.Options.KeepAliveInterval = TimeSpan.Zero;
+		
+		        if (_defaultHeaders != null)
+		        {
+		            foreach (var kv in _defaultHeaders)
+		            {
+		                _ws.Options.SetRequestHeader(kv.Key, kv.Value);
+		            }
+		        }
+		
+		        _receiverTokenSource = new CancellationTokenSource();
+		        _receiverToken = _receiverTokenSource.Token;
+		
+		        _socketTokenSource = new CancellationTokenSource();
+		        _socketToken = _socketTokenSource.Token;
+		
+		        _isDisposed = false;
+		
+		        await _ws.ConnectAsync(_uri, _socketToken).ConfigureAwait(false);
+		
+		        _receiverTask = Task.Run<DiscordWebSocketCloseEventArgs>(ReceiverLoopAsync, CancellationToken.None);
+		
+		        _receiverTask.ContinueWith(
+		            delegate (Task<CloseStatus> task)
+		            {
+		                OnClosed.Invoke(this, task.Result);
+		            },
+		            TaskContinuationOptions.OnlyOnRanToCompletion
+		        );
+		    }
+		    finally
+		    {
+		        _senderLock.Release();
+		    }
+		}
 
         /// <inheritdoc />
         public async Task DisconnectAsync(int code = 1000, string message = "")
@@ -221,63 +242,64 @@ namespace Discord.WebSockets
 
             try
             {
-                using var bs = new MemoryStream();
-                while (!_receiverToken.IsCancellationRequested)
-                {
-                    // See https://github.com/RogueException/Discord.Net/commit/ac389f5f6823e3a720aedd81b7805adbdd78b66d 
-                    // for explanation on the cancellation token
-
-                    WebSocketReceiveResult result;
-                    byte[] resultBytes;
-                    do
-                    {
-                        result = await _ws.ReceiveAsync(buffer, _receiverToken).ConfigureAwait(false);
-
-                        if (_receiverToken.IsCancellationRequested)
-                            break;
-
-                        if (result.MessageType == WebSocketMessageType.Close)
-                            break;
-
-                        bs.Write(buffer.Array, 0, result.Count);
-                    }
-                    while (!result.EndOfMessage);
-
-                    resultBytes = new byte[bs.Length];
-                    bs.Position = 0;
-                    bs.Read(resultBytes, 0, resultBytes.Length);
-                    bs.Position = 0;
-                    bs.SetLength(0);
-
-                    if (!_isConnected && result.MessageType != WebSocketMessageType.Close)
-                    {
-                        _isConnected = true;
-                        // An OnConnected event could be raised here. Currently there seems to be no need.
-                    }
-
-                    if (result.MessageType == WebSocketMessageType.Binary)
-                    {
-                        // Anarchy currently only supports plain text messages.
-                    }
-
-                    if (result.MessageType == WebSocketMessageType.Text)
-                    {
-                        OnMessageReceived.Invoke(this,
-                            JsonConvert.DeserializeObject<DiscordWebSocketMessage<TOpcode>>(Encoding.UTF8.GetString(resultBytes, 0, resultBytes.Length))
-                        );
-                    }
-
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        var code = (int) result.CloseStatus.Value;
-                        var message = result.CloseStatusDescription;
-
-                        if (_ws.State == WebSocketState.Open || _ws.State == WebSocketState.CloseReceived)
-                            await _ws.CloseOutputAsync((WebSocketCloseStatus) code, message, CancellationToken.None).ConfigureAwait(false);
-
-                        return new DiscordWebSocketCloseEventArgs(code, message);
-                    }
-                }
+            	using (var bs = new MemoryStream()) {
+	                while (!_receiverToken.IsCancellationRequested)
+	                {
+	                    // See https://github.com/RogueException/Discord.Net/commit/ac389f5f6823e3a720aedd81b7805adbdd78b66d 
+	                    // for explanation on the cancellation token
+	
+	                    WebSocketReceiveResult result;
+	                    byte[] resultBytes;
+	                    do
+	                    {
+	                        result = await _ws.ReceiveAsync(buffer, _receiverToken).ConfigureAwait(false);
+	
+	                        if (_receiverToken.IsCancellationRequested)
+	                            break;
+	
+	                        if (result.MessageType == WebSocketMessageType.Close)
+	                            break;
+	
+	                        bs.Write(buffer.Array, 0, result.Count);
+	                    }
+	                    while (!result.EndOfMessage);
+	
+	                    resultBytes = new byte[bs.Length];
+	                    bs.Position = 0;
+	                    bs.Read(resultBytes, 0, resultBytes.Length);
+	                    bs.Position = 0;
+	                    bs.SetLength(0);
+	
+	                    if (!_isConnected && result.MessageType != WebSocketMessageType.Close)
+	                    {
+	                        _isConnected = true;
+	                        // An OnConnected event could be raised here. Currently there seems to be no need.
+	                    }
+	
+	                    if (result.MessageType == WebSocketMessageType.Binary)
+	                    {
+	                        // Anarchy currently only supports plain text messages.
+	                    }
+	
+	                    if (result.MessageType == WebSocketMessageType.Text)
+	                    {
+	                        OnMessageReceived.Invoke(this,
+	                            JsonConvert.DeserializeObject<DiscordWebSocketMessage<TOpcode>>(Encoding.UTF8.GetString(resultBytes, 0, resultBytes.Length))
+	                        );
+	                    }
+	
+	                    if (result.MessageType == WebSocketMessageType.Close)
+	                    {
+	                        var code = (int) result.CloseStatus.Value;
+	                        var message = result.CloseStatusDescription;
+	
+	                        if (_ws.State == WebSocketState.Open || _ws.State == WebSocketState.CloseReceived)
+	                            await _ws.CloseOutputAsync((WebSocketCloseStatus) code, message, CancellationToken.None).ConfigureAwait(false);
+	
+	                        return new DiscordWebSocketCloseEventArgs(code, message);
+	                    }
+	                }
+            	}
             }
             catch (Exception ex)
             {

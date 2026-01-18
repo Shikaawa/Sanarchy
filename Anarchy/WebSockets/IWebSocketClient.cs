@@ -15,7 +15,7 @@ namespace Discord.WebSockets
     /// <summary>
     /// Represents a base abstraction for all WebSocket client implementations.
     /// </summary>
-    public interface IWebSocketClient<TOpcode> : IDisposable where TOpcode : Enum
+    public interface IWebSocketClient<TOpcode> : IDisposable
     {
         /// <summary>
         /// Gets the proxy settings for this client.

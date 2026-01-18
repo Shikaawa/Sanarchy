@@ -45,7 +45,7 @@ namespace Discord.Gateway
             }
         }
 
-        private static readonly Random random = new();
+        private static readonly Random random = new Random();
         internal static string RandomString(int length)
         {
             const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";

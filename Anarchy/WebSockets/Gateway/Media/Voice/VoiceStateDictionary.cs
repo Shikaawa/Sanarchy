@@ -8,7 +8,8 @@ namespace Discord.Gateway
         {
             get
             {
-                if (TryGetValue(userId, out DiscordVoiceStateContainer container))
+            	DiscordVoiceStateContainer container;
+                if (TryGetValue(userId, out container))
                     return container;
                 else
                     return this[userId] = new DiscordVoiceStateContainer(userId);

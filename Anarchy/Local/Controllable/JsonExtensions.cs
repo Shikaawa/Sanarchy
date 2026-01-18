@@ -4,40 +4,41 @@ using Newtonsoft.Json.Linq;
 
 namespace Discord
 {
-    internal static class JsonExtensions
-    {
-        internal static bool TryFindTypes(Type type, out Dictionary<int, Type> types)
-        {
-            if (DeepJsonConverter.RecognizedTypes.TryGetValue(type, out types))
-                return true;
-            else if (type.BaseType == null)
-            {
-                types = null;
-                return false;
-            }
-            else
-                return TryFindTypes(type.BaseType, out types);
-        }
+	internal static class JsonExtensions
+	{
+		internal static bool TryFindTypes(Type type, out Dictionary<int, Type> types)
+		{
+			if (DeepJsonConverter.RecognizedTypes.TryGetValue(type, out types))
+				return true;
+			
+			if (type.BaseType == null) {
+				types = null;
+				return false;
+			}
+			
+			return TryFindTypes(type.BaseType, out types);
+		}
 
-        public static T ParseDeterministic<T>(this JObject obj)
-        {
-            if (TryFindTypes(typeof(T), out Dictionary<int, Type> types))
-            {
-                int type = obj.Value<int>("type");
-                return (T) obj.ToObject(types.TryGetValue(type, out var t) ? t : typeof(T));
-            }
-            else
-                throw new InvalidCastException("Unable to find any implementations for T");
-        }
+		public static T ParseDeterministic<T>(this JObject obj)
+		{
+			Dictionary<int, Type> types;
+			if (TryFindTypes(typeof(T), out types)) {
+				int type = obj.Value<int>("type");
+				Type t;
+				return (T)obj.ToObject(types.TryGetValue(type, out t) ? t : typeof(T));
+			}
+            
+			throw new InvalidCastException("Unable to find any implementations for T");
+		}
 
-        public static List<T> MultipleDeterministic<T>(this JArray arr)
-        {
-            List<T> results = new List<T>();
+		public static List<T> MultipleDeterministic<T>(this JArray arr)
+		{
+			var results = new List<T>();
 
-            foreach (JObject child in arr)
-                results.Add(child.ParseDeterministic<T>());
+			foreach (JObject child in arr)
+				results.Add(child.ParseDeterministic<T>());
 
-            return results;
-        }
-    }
+			return results;
+		}
+	}
 }

@@ -377,13 +377,15 @@ namespace Discord
 
         public static async Task<DiscordAttachmentFile> GetAttachmentFile(this DiscordAttachment _this)
         {
-            using var hc = new HttpClient();
-            using var response = await hc.GetAsync(_this.Url);
-            response.EnsureSuccessStatusCode();
-            return new DiscordAttachmentFile(
-                await response.Content.ReadAsByteArrayAsync(),
-                response.Content.Headers.First(x => x.Key == "Content-Type").Value.First()
-            );
+        	using (var hc = new HttpClient()) {
+        		using (var response = await hc.GetAsync(_this.Url)) {
+		            response.EnsureSuccessStatusCode();
+		            return new DiscordAttachmentFile(
+		                await response.Content.ReadAsByteArrayAsync(),
+		                response.Content.Headers.First(x => x.Key == "Content-Type").Value.First()
+		            );
+        		}
+        	}
         }
     }
 }

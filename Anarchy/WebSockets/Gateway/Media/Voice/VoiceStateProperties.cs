@@ -82,7 +82,8 @@ namespace Discord.Gateway
                     {
                         GuildId = ((GuildChannel) channel).GuildId;
 
-                        if (states.GuildVoiceStates.TryGetValue(GuildId.Value, out DiscordVoiceState oldState))
+                        DiscordVoiceState oldState;
+                        if (states.GuildVoiceStates.TryGetValue(GuildId.Value, out oldState))
                             state = oldState;
                     }
                     else if (states.PrivateChannelVoiceState != null && states.PrivateChannelVoiceState.Channel != null && states.PrivateChannelVoiceState.Channel.Id == ChannelId)

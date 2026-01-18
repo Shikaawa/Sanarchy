@@ -65,7 +65,7 @@ namespace Discord.Media
             if (args.Code == 1006)
             {
                 Thread.Sleep(200);
-                _ = ConnectAsync().ConfigureAwait(false);
+                ConnectAsync().ConfigureAwait(false);
                 return;
             }
             else if (args.Code >= 4000)
@@ -74,7 +74,7 @@ namespace Discord.Media
 
                 if (discordCode == DiscordMediaCloseCode.SessionTimeout || discordCode == DiscordMediaCloseCode.ServerCrashed)
                 {
-                    _ = ConnectAsync().ConfigureAwait(false);
+                    ConnectAsync().ConfigureAwait(false);
                     return;
                 }
             }
@@ -219,7 +219,8 @@ namespace Discord.Media
 
                         try
                         {
-                            var header = RTPPacketHeader.Read(SecretKey, received, out byte[] payload);
+                        	byte[] payload;
+                            var header = RTPPacketHeader.Read(SecretKey, received, out payload);
 
                             OnUdpPacket?.Invoke(this, new MediaPacketEventArgs(header, payload));
                         }

@@ -25,7 +25,8 @@ namespace Anarchy
         {
             get
             {
-                if (TryGetKey(value, out TKey key))
+            	TKey key;
+                if (TryGetKey(value, out key))
                     return key;
                 else
                     throw new ArgumentException("No item with the specified value was found");
@@ -64,7 +65,7 @@ namespace Anarchy
                 }
             }
 
-            key = default;
+            key = default(TKey);
             return false;
         }
 

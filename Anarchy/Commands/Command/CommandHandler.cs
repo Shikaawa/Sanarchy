@@ -7,183 +7,163 @@ using Discord.Gateway;
 
 namespace Discord.Commands
 {
-    public class CommandHandler
-    {
-        private readonly DiscordSocketClient _client;
-        private readonly CommandHandlerConfig _config;
+	public class CommandHandler
+	{
+		private readonly DiscordSocketClient _client;
+		private readonly CommandHandlerConfig _config;
 
-        internal CommandHandler(string prefix, DiscordSocketClient client, CommandHandlerConfig config = null)
-        {
-            _config = config ?? new CommandHandlerConfig();
-            _client = client;
+		internal CommandHandler(string prefix, DiscordSocketClient client, CommandHandlerConfig config)
+		{
+			_config = config ?? new CommandHandlerConfig();
+			_client = client;
+		
+			Prefix = prefix;
+		
+			client.OnMessageReceived += Client_OnMessageReceived;
+		
+			Assembly executable = Assembly.GetEntryAssembly();
+		
+			Commands = new Dictionary<string, DiscordCommand>();
+		
+			foreach (var type in executable.GetTypes()) {
+				if (!typeof(CommandBase).IsAssignableFrom(type))
+					continue;
+		
+				CommandAttribute attr;
+				if (TryGetAttribute(type.GetCustomAttributes(), out attr)) {
+					Commands.Add(attr.Name, new DiscordCommand(type, attr));
+				}
+			}
+		}
 
-            Prefix = prefix;
+		public Dictionary<string, DiscordCommand> Commands { get; private set; }
+		public string Prefix { get; private set; }
 
-            client.OnMessageReceived += Client_OnMessageReceived;
+		internal static bool TryGetAttribute<TAttr>(IEnumerable<object> attributes, out TAttr attr) where TAttr : Attribute
+		{
+			foreach (var attribute in attributes) {
+				if (attribute is TAttr) {
+					attr = (TAttr)attribute;
+					return true;
+				}
+			}
 
-            Assembly executable = Assembly.GetEntryAssembly();
+			attr = null;
+			return false;
+		}
 
-            Commands = new Dictionary<string, DiscordCommand>();
-            foreach (var type in executable.GetTypes())
-            {
-                if (typeof(CommandBase).IsAssignableFrom(type) && TryGetAttribute(type.GetCustomAttributes(), out CommandAttribute attr))
-                    Commands.Add(attr.Name, new DiscordCommand(type, attr));
-            }
-        }
+		private void Client_OnMessageReceived(DiscordSocketClient client, MessageEventArgs args)
+		{
+			string prefix = _config.GetGuildPrefix(args.Message.Guild.Id) ?? Prefix;
 
-        public Dictionary<string, DiscordCommand> Commands { get; private set; }
-        public string Prefix { get; private set; }
+			if (args.Message.Content.StartsWith(prefix, StringComparison.Ordinal)) {
+				List<string> parts = args.Message.Content.Split(' ').ToList();
+				DiscordCommand command;
+				string commandKey = parts[0].Substring(prefix.Length);
+				if (_config.CaseInsensitiveCommands)
+					commandKey = commandKey.ToLower();
+				
+				if (Commands.TryGetValue(commandKey, out command)) {
+					parts.RemoveAt(0);
 
-        internal static bool TryGetAttribute<TAttr>(IEnumerable<object> attributes, out TAttr attr) where TAttr : Attribute
-        {
-            foreach (var attribute in attributes)
-            {
-                if (attribute.GetType() == typeof(TAttr))
-                {
-                    attr = (TAttr) attribute;
-                    return true;
-                }
-            }
+					var inst = (CommandBase)Activator.CreateInstance(command.Type);
+					inst.Prepare(_client, args.Message);
 
-            attr = null;
-            return false;
-        }
+					for (int i = 0; i < command.Parameters.Count; i++) {
+						var param = command.Parameters[i];
 
-        private void Client_OnMessageReceived(DiscordSocketClient client, MessageEventArgs args)
-        {
-            string prefix = _config.GetGuildPrefix(args.Message.Guild.Id) ?? Prefix;
+						if (i < parts.Count) {
+							try {
+								object value;
 
-            if (args.Message.Content.StartsWith(prefix))
-            {
-                List<string> parts = args.Message.Content.Split(' ').ToList();
-                DiscordCommand command;
+								if (param.Property.PropertyType == typeof(string) && i == command.Parameters.Count - 1)
+									value = string.Join(" ", parts.Skip(i));
+								else if (args.Message.Guild != null && parts[i].StartsWith("<", StringComparison.Ordinal) && parts[i].EndsWith(">", StringComparison.Ordinal))
+									value = ParseReference(param.Property.PropertyType, parts[i]);
+								else
+									value = parts[i];
 
-                if (_config.CaseInsensitiveCommands ? Commands.TryGetValue(parts[0].ToLower()[prefix.Length..], out command) : Commands.TryGetValue(parts[0][prefix.Length..], out command))
-                {
-                    parts.RemoveAt(0);
+								if (!param.Property.PropertyType.IsInstanceOfType(value))
+									value = Convert.ChangeType(value, param.Property.PropertyType);
 
-                    CommandBase inst = (CommandBase) Activator.CreateInstance(command.Type);
-                    inst.Prepare(_client, args.Message);
+								param.Property.SetValue(inst, value);
+							} catch (Exception ex) {
+								inst.HandleError(param.Name, parts[i], ex);
 
-                    for (int i = 0; i < command.Parameters.Count; i++)
-                    {
-                        var param = command.Parameters[i];
+								return;
+							}
+						} else if (param.Optional)
+							break;
+						else {
+							// disable once NotResolvedInText
+							inst.HandleError(param.Name, null, new ArgumentNullException("Too few arguments provided"));
 
-                        if (i < parts.Count)
-                        {
-                            try
-                            {
-                                object value;
+							return;
+						}
+					}
 
-                                if (param.Property.PropertyType == typeof(string) && i == command.Parameters.Count - 1)
-                                    value = string.Join(" ", parts.Skip(i));
-                                else if (args.Message.Guild != null && parts[i].StartsWith("<") && parts[i].EndsWith(">"))
-                                    value = ParseReference(param.Property.PropertyType, parts[i]);
-                                else
-                                    value = parts[i];
+					inst.Execute();
+				}
+			}
+		}
 
-                                if (!param.Property.PropertyType.IsAssignableFrom(value.GetType()))
-                                    value = Convert.ChangeType(value, param.Property.PropertyType);
+		// https://discord.com/developers/docs/reference#message-formatting
+		private object ParseReference(Type expectedType, string reference)
+		{
+			string value = reference.Substring(1, reference.Length - 2);
 
-                                param.Property.SetValue(inst, value);
-                            }
-                            catch (Exception ex)
-                            {
-                                inst.HandleError(param.Name, parts[i], ex);
+			// Get the object's ID (always last thing in the sequence)
 
-                                return;
-                            }
-                        }
-                        else if (param.Optional)
-                            break;
-                        else
-                        {
-                            inst.HandleError(param.Name, null, new ArgumentNullException("Too few arguments provided"));
+			MatchCollection matches = Regex.Matches(value, @"\d{18,}");
+			if (matches.Count > 0) {
+				Match match = matches[matches.Count - 1];
 
-                            return;
-                        }
-                    }
+				if (match.Index + match.Length == value.Length) {
+					ulong anyId = ulong.Parse(match.Value);
 
-                    inst.Execute();
-                }
-            }
-        }
+					string forSpecific = value.Substring(0, match.Index);
 
-        // https://discord.com/developers/docs/reference#message-formatting
-        private object ParseReference(Type expectedType, string reference)
-        {
-            string value = reference.Substring(1, reference.Length - 2);
+					if (expectedType.IsAssignableFrom(typeof(MinimalChannel))) {
+						if (forSpecific == "#") {
+							if (expectedType.IsAssignableFrom(typeof(DiscordChannel))) {
+								if (_client.Config.Cache)
+									return _client.GetChannel(anyId);
+								else
+									throw new InvalidOperationException("Caching must be enabled to parse DiscordChannels");
+							} else
+								return new MinimalTextChannel(anyId).SetClient(_client);
+						} else
+							throw new ArgumentException("Invalid reference type");
+					} else if (expectedType == typeof(DiscordRole)) {
+						if (forSpecific.StartsWith("@&", StringComparison.Ordinal)) {
+							if (_client.Config.Cache)
+								return _client.GetGuildRole(anyId);
+							else
+								throw new InvalidOperationException("Caching must be enabled to parse DiscordChannels");
+						} else
+							throw new ArgumentException("Invalid reference type");
+					} else if (expectedType.IsAssignableFrom(typeof(PartialEmoji))) {
+						if (Regex.IsMatch(forSpecific, @"a?:\w+:")) {
+							string[] split = forSpecific.Split(':');
 
-            // Get the object's ID (always last thing in the sequence)
+							bool animated = split[0] == "a";
+							string name = split[1];
 
-            MatchCollection matches = Regex.Matches(value, @"\d{18,}");
-            if (matches.Count > 0)
-            {
-                Match match = matches[matches.Count - 1];
+							if (expectedType == typeof(DiscordEmoji)) {
+								if (_client.Config.Cache)
+									return _client.GetGuildEmoji(anyId);
+								else
+									throw new InvalidOperationException("Caching must be enabled to parase DiscordEmojis");
+							} else
+								return new PartialEmoji(anyId, name, animated).SetClient(_client);
+						} else
+							throw new ArgumentException("Invalid reference type");
+					} else
+						return anyId;
+				}
+			}
 
-                if (match.Index + match.Length == value.Length)
-                {
-                    ulong anyId = ulong.Parse(match.Value);
-
-                    string forSpecific = value.Substring(0, match.Index);
-
-                    if (expectedType.IsAssignableFrom(typeof(MinimalChannel)))
-                    {
-                        if (forSpecific == "#")
-                        {
-                            if (expectedType.IsAssignableFrom(typeof(DiscordChannel)))
-                            {
-                                if (_client.Config.Cache)
-                                    return _client.GetChannel(anyId);
-                                else
-                                    throw new InvalidOperationException("Caching must be enabled to parse DiscordChannels");
-                            }
-                            else
-                                return new MinimalTextChannel(anyId).SetClient(_client);
-                        }
-                        else
-                            throw new ArgumentException("Invalid reference type");
-                    }
-                    else if (expectedType == typeof(DiscordRole))
-                    {
-                        if (forSpecific.StartsWith("@&"))
-                        {
-                            if (_client.Config.Cache)
-                                return _client.GetGuildRole(anyId);
-                            else
-                                throw new InvalidOperationException("Caching must be enabled to parse DiscordChannels");
-                        }
-                        else
-                            throw new ArgumentException("Invalid reference type");
-                    }
-                    else if (expectedType.IsAssignableFrom(typeof(PartialEmoji)))
-                    {
-                        if (Regex.IsMatch(forSpecific, @"a?:\w+:"))
-                        {
-                            string[] split = forSpecific.Split(':');
-
-                            bool animated = split[0] == "a";
-                            string name = split[1];
-
-                            if (expectedType == typeof(DiscordEmoji))
-                            {
-                                if (_client.Config.Cache)
-                                    return _client.GetGuildEmoji(anyId);
-                                else
-                                    throw new InvalidOperationException("Caching must be enabled to parase DiscordEmojis");
-                            }
-                            else
-                                return new PartialEmoji(anyId, name, animated).SetClient(_client);
-                        }
-                        else
-                            throw new ArgumentException("Invalid reference type");
-                    }
-                    else
-                        return anyId;
-                }
-            }
-
-            throw new ArgumentException("Invalid reference");
-        }
-    }
+			throw new ArgumentException("Invalid reference");
+		}
+	}
 }

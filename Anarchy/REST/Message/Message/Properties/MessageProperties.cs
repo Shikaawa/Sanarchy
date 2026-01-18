@@ -63,11 +63,14 @@ namespace Discord
                 for (byte i = 0; i < Attachments.Count; ++i) Attachments[i].Id = i;
         }
 
-        internal IEnumerable<(string FileName, DiscordAttachmentFile File, int Id)> GetAttachmentFiles()
-        {
-            return ShouldSerializeAttachments()
-                ? Attachments.Select((a, index) => (a.FileName, a.File, index))
-                : null;
-        }
+        internal IEnumerable<Tuple<string, DiscordAttachmentFile, int>> GetAttachmentFiles()
+		{
+		    if (!ShouldSerializeAttachments())
+		        return null;
+		
+		    return Attachments.Select(
+		        (a, index) => Tuple.Create(a.FileName, a.File, index)
+		    );
+		}
     }
 }

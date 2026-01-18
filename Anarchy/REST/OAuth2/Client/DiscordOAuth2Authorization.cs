@@ -14,7 +14,7 @@ namespace Discord
         [JsonProperty("expires_in")]
         private int _expiresIn
         {
-            set => ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(value);
+        	set { ExpiresAt = DateTimeOffset.UtcNow.AddSeconds(value); }
         }
 
         public DateTimeOffset ExpiresAt { get; private set; }

@@ -104,7 +104,7 @@ namespace Discord.Media
             return offset + OpusConverter.FrameBytes;
         }
 
-        public int CopyFrom(byte[] buffer, int offset = 0, CancellationToken cancellationToken = default)
+        public int CopyFrom(byte[] buffer, int offset = 0, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (_client.State < MediaConnectionState.Ready)
                 throw new InvalidOperationException("Client is not currently connected");
@@ -126,7 +126,7 @@ namespace Discord.Media
             return offset;
         }
 
-        public bool CopyFrom(Stream stream, CancellationToken cancellationToken = default)
+        public bool CopyFrom(Stream stream, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (_client.State < MediaConnectionState.Ready)
                 throw new InvalidOperationException("Client is not currently connected");
@@ -136,13 +136,13 @@ namespace Discord.Media
 
             _nextTick = -1;
 
-            byte[] buffer = new byte[OpusEncoder.FrameBytes];
+            var buffer = new byte[OpusEncoder.FrameBytes];
             while (!cancellationToken.IsCancellationRequested && _client.Connection.State == MediaConnectionState.Ready)
             {
                 int read = stream.Read(buffer, 0, buffer.Length);
                 if (read == 0) return true;
 
-                byte[] actual = new byte[read];
+                var actual = new byte[read];
                 Buffer.BlockCopy(buffer, 0, actual, 0, read);
                 _toBeUsed.AddRange(actual);
 
